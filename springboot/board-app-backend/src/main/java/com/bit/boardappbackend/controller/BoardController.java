@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -103,8 +104,9 @@ public class BoardController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable("id") Long id) {
+    public ResponseEntity<?> deleteById(@PathVariable("id") Long id) {
         ResponseDto<BoardDto> responseDto = new ResponseDto<>();
+
         try {
             log.info("deleteById id: {}", id);
 
@@ -122,9 +124,42 @@ public class BoardController {
         }
     }
 
+    @PatchMapping
+    public ResponseEntity<?> modify(@RequestPart("boardDto") BoardDto boardDto,
+           @RequestPart(value = "uploadFiles", required = false) MultipartFile[] uploadFiles,
+           @RequestPart(value = "changeFiles", required = false) MultipartFile[] changeFiles,
+           @RequestPart(value = "originFiles", required = false) String originFiles,
+           @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        ResponseDto<BoardDto> responseDto = new ResponseDto<>();
 
+        try {
+            log.info("modify boardDto: {}", boardDto);
 
+            if(uploadFiles != null && uploadFiles.length > 0)
+                Arrays.stream(uploadFiles).forEach(file ->
+                        log.info("modify uploadFile: {}", file.getOriginalFilename()));
 
+            if(changeFiles != null && changeFiles.length > 0)
+                Arrays.stream(changeFiles).forEach(file ->
+                        log.info("modify changeFile: {}", file.getOriginalFilename()));
+
+            log.info("modify originFiles: {}", originFiles);
+
+            BoardDto modifiedBoardDto = boardService.modify(boardDto, uploadFiles,
+                    changeFiles, originFiles, customUserDetails.getMember());
+
+            responseDto.setItem(modifiedBoardDto);
+            responseDto.setStatusCode(HttpStatus.OK.value());
+            responseDto.setStatusMessage("ok");
+
+            return ResponseEntity.ok(responseDto);
+        } catch(Exception e) {
+            log.error("modify error: {}", e.getMessage());
+            responseDto.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            responseDto.setStatusMessage(e.getMessage());
+            return ResponseEntity.internalServerError().body(responseDto);
+        }
+    }
 
 
 

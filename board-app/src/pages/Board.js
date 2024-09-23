@@ -19,7 +19,7 @@ const Board = () => {
 
     const findById = useCallback(async () => {
         try {
-            const response = await axios.get(`http://localhost:9090/boards/${id}`, {
+            const response = await axios.get(`http://223.130.130.122:9090/boards/${id}`, {
                 headers: {
                     Authorization: `Bearer ${sessionStorage.getItem('ACCESS_TOKEN')}`
                 }
@@ -37,7 +37,7 @@ const Board = () => {
     
     const deleteById = useCallback(async () => {
         try {
-            const resonse = await axios.delete(`http://localhost:9090/boards/${id}`, {
+            const resonse = await axios.delete(`http://223.130.130.122:9090/boards/${id}`, {
                 headers: {
                     Authorization: `Bearer ${sessionStorage.getItem('ACCESS_TOKEN')}`
                 }
@@ -112,6 +112,171 @@ const Board = () => {
         reader.readAsDataURL(fileList[0]);
     }
 
+    const deleteImg = (e, fileId) => {
+        originFiles = originFiles.map(originFile => 
+            originFile.id == fileId
+            ? {
+                ...originFile,
+                filestatus: 'D'
+            }
+            : originFile
+        );
+
+        e.target.parentElement.remove();
+    }
+
+    const openAddFileInput = () => {
+        document.querySelector(`#uploadFiles`).click();
+    }
+
+    // 미리보기 처리
+    const imageLoader = (file) => {
+        let reader = new FileReader();
+
+        reader.onload = (e) => {
+            let img = document.createElement('img');
+            img.setAttribute('width', '150px');
+            img.setAttribute('height', '80px');
+            img.setAttribute('style', 'z-index: none;');
+
+            if(file.name.toLowerCase().match(/(.*?)\.(jpg|png|jpeg|gif|svg|bmp)$/)) {
+                img.src = e.target.result;
+            } else {
+                // 프로젝트 내에 src와 public 폴더가 존재하는데
+                // 정적파일들을 src폴더나 public 폴더에 둘 다 위치를 시킬 수 있는데
+                // 가져오는 방식이 다르다.
+                // src 폴더에 정적 파일을 위치시켰을 경우에는 import 구문으로 파일을 가져와야한다.
+                // public 폴더에 정적 파일을 위치시켰을 경우에는 문자열로 경로를 지정할 수 있다.
+                // public 폴더에 위치
+                img.src = '/images/defaultFileImg.png';
+                // src 폴더에 위치
+                // img.src = defaultFileImg;
+            }
+
+            document.querySelector('#preview').appendChild(makeDiv(img, file));
+        }
+
+        reader.readAsDataURL(file);
+    }
+
+    const makeDiv = (img, file) => {
+        let div = document.createElement('div');
+
+        div.setAttribute('style', 'display: inline-block; position: relative;' + 
+            ' width: 150px; height: 120px; margin: 5px; border: 1px solid #00f; z-index: 1;'
+        );
+
+        let btn = document.createElement('input');
+        btn.setAttribute('type', 'button');
+        btn.setAttribute('value', 'x');
+        btn.setAttribute('deleteFile', file.name);
+        btn.setAttribute('style', 'width: 30px; height: 30px; position: absolute;' +
+            ' right: 0; bottom: 0; z-index: 999; background-color: rgba(255, 255, 255, 0.1);' +
+            ' color: #f00'
+        );
+
+        btn.onclick = (e) => {
+            const ele = e.target;
+
+            const deleteFile = ele.getAttribute('deleteFile');
+
+            for(let i = 0; i < uploadFiles.length; i++) {
+                if(deleteFile === uploadFiles[i].name) {
+                    uploadFiles.splice(i, 1);
+                }
+            }
+
+            let dataTransfer = new DataTransfer();
+
+            for(let i in uploadFiles) {
+                const file = uploadFiles[i];
+                dataTransfer.items.add(file);
+            }
+
+            document.querySelector("#uploadFiles").files = dataTransfer.files;
+
+            const parentDiv = ele.parentNode;
+            parentDiv.remove();
+        }
+
+        let filenameP = document.createElement('p');
+        filenameP.setAttribute('style', 'display: inline-block; font-size: 8px;');
+        filenameP.textContent = file.name;
+
+        div.appendChild(img);
+        div.appendChild(btn);
+        div.appendChild(filenameP);
+
+        return div;
+    }
+
+    const addFiles = (e) => {
+        const fileList = Array.prototype.slice.call(e.target.files);
+
+        fileList.forEach(file => {
+            imageLoader(file);
+            uploadFiles.push(file);
+        });
+    }
+
+    const modify = useCallback(async (formData) => {
+        try {
+            const response = await axios.patch('http://223.130.130.122:9090/boards', formData, {
+                headers: {
+                    Authorization: `Bearer ${sessionStorage.getItem('ACCESS_TOKEN')}`
+                }
+            });
+
+            if(response.data && response.data.statusCode === 200) {
+                alert("정상적으로 수정되었습니다.");
+                // uploadFiles = [];
+                // changeFiles = [];
+                // originFiles = [];
+                // setBoard(response.data.item);
+                window.location.reload();
+            }
+        } catch(e) {
+            alert('에러가 발생했습니다.');
+        }
+    }, []);
+
+    const handleModify = useCallback((e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+
+        const formDataObj = {};
+
+        formData.forEach((value, key) => formDataObj[key] = value);
+
+        formDataObj['regdate'] = formDataObj.regdate + 'T00:00:00';
+        formDataObj['moddate'] = formDataObj.moddate + 'T00:00:00';
+        
+        const sendFormData = new FormData();
+
+        sendFormData.append("boardDto", new Blob([JSON.stringify(formDataObj)], {
+            type: 'application/json'
+        }));
+
+        // const uploadFileList = document.querySelector('#uploadFiles').files;
+
+        // for(let i = 0; i < uploadFileList.length; i++) {
+        //     uploadFiles.push(uploadFileList[i]);
+        // }
+
+        Array.from(uploadFiles).forEach(file => {
+            sendFormData.append('uploadFiles', file);
+        });
+
+        Array.from(changeFiles).forEach(file => {
+            sendFormData.append('changeFiles', file);
+        });
+
+        sendFormData.append('originFiles', JSON.stringify(originFiles));
+
+        modify(sendFormData);
+    }, [board, uploadFiles, changeFiles, originFiles]);
+
   return (
     <Container maxWidth='md' style={{marginTop: '3%', textAlign: 'center'}}>
         <Grid container>
@@ -121,7 +286,7 @@ const Board = () => {
                 </Typography>
             </Grid>
         </Grid>
-        <form>
+        <form onSubmit={handleModify}>
             {board != null && <input type='hidden' name='id' id='id' value={board.id}></input>}
             <Grid container style={{marginTop: '3%', textAlign: 'center'}}>
                 <Grid item
@@ -252,12 +417,14 @@ const Board = () => {
                 </Grid>
                 <Grid item
                       xs={10}>
-                    <Button type='button' variant='outlined'>파일 선택</Button>
+                    <Button type='button' variant='outlined'
+                            onClick={openAddFileInput}>파일 선택</Button>
                     <input type='file'
                            multiple
                            name='uploadFiles'
                            id='uploadFiles'
-                           style={{display: 'none'}}></input>
+                           style={{display: 'none'}}
+                           onChange={addFiles}></input>
                 </Grid>
             </Grid>
             <Grid container style={{marginTop: '3%', textAlign: 'center'}}>
@@ -289,7 +456,7 @@ const Board = () => {
                                        onChange={(e) => changeFile(e, boardFile.id)}
                                 ></input>
                                 <img width='150px'
-                                     height='90px'
+                                     height='80px'
                                      style={{zIndex: 'none', cursor: 'pointer'}}
                                      className='fileImg'
                                      id={`img${boardFile.id}`}
@@ -312,6 +479,7 @@ const Board = () => {
                                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
                                         color: '#f00'
                                        }}
+                                       onClick={(e) => deleteImg(e, boardFile.id)}
                                 ></input>
                                 <p style={{
                                         display: 'inline-block',

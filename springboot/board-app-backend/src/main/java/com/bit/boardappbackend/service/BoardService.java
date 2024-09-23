@@ -17,4 +17,6 @@ public interface BoardService {
     BoardDto findById(Long id);
 
     void deleteById(Long id);
+
+    BoardDto modify(BoardDto boardDto, MultipartFile[] uploadFiles, MultipartFile[] changeFiles, String originFiles, Member member);
 }
