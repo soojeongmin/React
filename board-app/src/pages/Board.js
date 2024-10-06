@@ -6,6 +6,7 @@ import axios from 'axios';
 
 const Board = () => {
     const [board, setBoard] = useState(null);
+    const [fileList, setFileList] = useState([]);
 
     const {id} = useParams();
 
@@ -19,13 +20,14 @@ const Board = () => {
 
     const findById = useCallback(async () => {
         try {
-            const response = await axios.get(`http://223.130.130.122:9090/boards/${id}`, {
+            const response = await axios.get(`http://211.188.51.82:9090/boards/${id}`, {
                 headers: {
                     Authorization: `Bearer ${sessionStorage.getItem('ACCESS_TOKEN')}`
                 }
             });
 
             setBoard(() => response.data.item);
+            setFileList(() => response.data.item.boardFileDtoList);
         } catch(e) {
             alert('에러가 발생했습니다.');
         }
@@ -37,7 +39,7 @@ const Board = () => {
     
     const deleteById = useCallback(async () => {
         try {
-            const resonse = await axios.delete(`http://223.130.130.122:9090/boards/${id}`, {
+            const resonse = await axios.delete(`http://211.188.51.82:9090/boards/${id}`, {
                 headers: {
                     Authorization: `Bearer ${sessionStorage.getItem('ACCESS_TOKEN')}`
                 }
@@ -221,19 +223,21 @@ const Board = () => {
 
     const modify = useCallback(async (formData) => {
         try {
-            const response = await axios.patch('http://223.130.130.122:9090/boards', formData, {
+            const response = await axios.patch('http://211.188.51.82:9090/boards', formData, {
                 headers: {
                     Authorization: `Bearer ${sessionStorage.getItem('ACCESS_TOKEN')}`
                 }
             });
 
             if(response.data && response.data.statusCode === 200) {
+                console.log(response.data);
                 alert("정상적으로 수정되었습니다.");
-                // uploadFiles = [];
-                // changeFiles = [];
-                // originFiles = [];
-                // setBoard(response.data.item);
-                window.location.reload();
+                uploadFiles = [];
+                changeFiles = [];
+                originFiles = [];
+                setBoard(() => response.data.item);
+                setFileList(() => response.data.item.boardFileDtoList);
+                // window.location.reload();
             }
         } catch(e) {
             alert('에러가 발생했습니다.');
@@ -274,8 +278,10 @@ const Board = () => {
 
         sendFormData.append('originFiles', JSON.stringify(originFiles));
 
+        document.querySelector("#preview").innerHTML = '';
+
         modify(sendFormData);
-    }, [board, uploadFiles, changeFiles, originFiles]);
+    }, [uploadFiles, changeFiles, originFiles]);
 
   return (
     <Container maxWidth='md' style={{marginTop: '3%', textAlign: 'center'}}>
@@ -438,7 +444,7 @@ const Board = () => {
                 <Grid item
                       xs={10}>
                     <Container component='div' name='preview' id='preview'>
-                        {board != null && board.boardFileDtoList.map((boardFile, index) => (
+                        {fileList && fileList.map((boardFile, index) => (
                             <div key={index}
                                  style={{
                                     display: 'inline-block',
@@ -461,7 +467,7 @@ const Board = () => {
                                      className='fileImg'
                                      id={`img${boardFile.id}`}
                                      src={boardFile.filetype === 'image'
-                                        ? `https://kr.object.ncloudstorage.com/bitcamp-69/${boardFile.filepath}${boardFile.filename}`
+                                        ? `https://kr.object.ncloudstorage.com/bitcamp-57/${boardFile.filepath}${boardFile.filename}`
                                         : '/images/defaultFileImg.png'
                                      }
                                      onClick={() => openChangeFileInput(boardFile.id)}

@@ -125,7 +125,8 @@ public class BoardServiceImpl implements BoardService {
 
         if(uploadFiles != null && uploadFiles.length > 0) {
             Arrays.stream(uploadFiles).forEach(file -> {
-                if(!file.getOriginalFilename().equalsIgnoreCase("") && file.getOriginalFilename() != null) {
+                if(!file.getOriginalFilename().equalsIgnoreCase("")
+                        && file.getOriginalFilename() != null) {
                     BoardFileDto addBoardFileDto = fileUtils.parserFileInfo(file, "board/");
 
                     addBoardFileDto.setBoard_id(boardDto.getId());
@@ -146,13 +147,21 @@ public class BoardServiceImpl implements BoardService {
 
         uFileList.forEach(
                 boardFileDto -> {
-                    if(boardFileDto.getFilestatus().equalsIgnoreCase("U") ||
-                    boardFileDto.getFilestatus().equalsIgnoreCase("I"))
+                    if(boardFileDto.getFilestatus().equalsIgnoreCase("U")
+                            || boardFileDto.getFilestatus().equalsIgnoreCase("I")) {
                         board.getBoardFileList().add(boardFileDto.toEntity(board));
-                    else if(boardFileDto.getFilestatus().equalsIgnoreCase("D"))
+                    } else if(boardFileDto.getFilestatus().equalsIgnoreCase("D")) {
                         boardFileRepository.delete(boardFileDto.toEntity(board));
+                    }
                 }
         );
-        return boardRepository.save(board).toDto();
+
+        boardRepository.save(board);
+
+        boardRepository.flush();
+
+        return boardRepository.findById(boardDto.getId()).orElseThrow(
+                () -> new RuntimeException("board not exist")
+        ).toDto();
     }
 }

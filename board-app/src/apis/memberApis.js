@@ -9,7 +9,7 @@ export const join = createAsyncThunk(
     'members/join',
     async (member, thunkApi) => {
         try {
-            const response = await axios.post('http://223.130.130.122:9090/members/join', member);
+            const response = await axios.post('http://211.188.51.82:9090/members/join', member);
 
             return response.data.item;
         } catch(e) {
@@ -22,7 +22,7 @@ export const login = createAsyncThunk(
     'members/login',
     async (member, thunkApi) => {
         try {
-            const response = await axios.post('http://223.130.130.122:9090/members/login', member);
+            const response = await axios.post('http://211.188.51.82:9090/members/login', member);
 
             return response.data.item;
         } catch(e) {
@@ -36,7 +36,7 @@ export const logout = createAsyncThunk(
     async (_, thunkApi) => {
         try {
             const response = await axios.get(
-                `http://223.130.130.122:9090/members/logout`,
+                `http://211.188.51.82:9090/members/logout`,
                 {
                     headers: {
                         Authorization: `Bearer ${sessionStorage.getItem('ACCESS_TOKEN')}`
